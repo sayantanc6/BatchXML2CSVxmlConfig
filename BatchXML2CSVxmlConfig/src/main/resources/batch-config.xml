@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns = "http://www.springframework.org/schema/beans" 
+   xmlns:batch = "http://www.springframework.org/schema/batch" 
+   xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance" 
+   xsi:schemaLocation = "http://www.springframework.org/schema/batch 
+
+   http://www.springframework.org/schema/batch/spring-batch-2.2.xsd 
+   http://www.springframework.org/schema/beans
+   http://www.springframework.org/schema/beans/spring-beans-4.2.xsd">
+   
+   <batch:job id="XmlToCsvJob">
+   	 <batch:step id="step1">
+   	   <batch:tasklet>
+   	     <batch:chunk reader="itemreader" processor="itemProcessor" 
+   	     writer="itemWriter" commit-interval="1" />
+   	   </batch:tasklet>
+   	 </batch:step>
+   	 <batch:listeners>
+          <batch:listener ref="listener" />
+     </batch:listeners>
+   </batch:job>
+   
+   
+   <bean id="itemreader" class="org.springframework.batch.item.xml.StaxEventItemReader">
+ 
+        <property name="resource" value="${file.input}" />
+ 
+        <property name="fragmentRootElementName" value="student" />
+ 
+        <property name="unmarshaller">
+            <bean class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+                <property name="classesToBeBound">
+                    <list>
+                        <value>dummy.Student</value>
+                    </list>
+                </property>
+            </bean>
+        </property>
+    </bean>
+  
+   <bean id="item" class="dummy.Student" scope="prototype"/> 
+   <bean id="itemProcessor" class="dummy.StudentProcessor"/>
+   <bean id="listener" class="dummy.StudentJobListener"/>
+   
+   <bean id="itemWriter" class="org.springframework.batch.item.file.FlatFileItemWriter">
+        <property name="name" value="studentWriter" />
+    <property name="headerCallback">
+    	<bean id="StringHeader" class="dummy.StringHeaderWriter">
+    	  <constructor-arg value="${batch.job.export.file.header}"/>
+    	</bean>
+    </property>
+    <property name="lineAggregator">
+    	<bean id="lineAggregatorBean" class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+    		<property name="delimiter" value=";" />
+    		<property name="fieldExtractor">
+    			<bean id="fieldExtractorBean" class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+    				  		<property name="names" value="name,emailAddress,purchasedPackage"></property> 
+    			</bean>
+    		</property>
+    	</bean>
+    </property>
+    <property name="resource">
+     <bean id="filesystemresource" class="org.springframework.core.io.FileSystemResource">
+     	<constructor-arg value="${file.output}" />
+     </bean>
+    </property>
+    </bean>
+   
+</beans>
